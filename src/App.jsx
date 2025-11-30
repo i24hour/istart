@@ -3,28 +3,12 @@ import Dashboard from './components/Dashboard';
 import ProjectSetup from './components/ProjectSetup';
 import ProjectTracking from './components/ProjectTracking';
 import Settings from './components/Settings';
-import { getApiKey } from './utils/storageApi';
 
 function App() {
   const [view, setView] = useState('dashboard'); // dashboard, setup, tracking, settings
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
 
-  useEffect(() => {
-    // Check if API key exists on first load
-    const checkApiKey = async () => {
-      try {
-        const apiKey = await getApiKey();
-        if (!apiKey) {
-          setShowApiKeyPrompt(true);
-        }
-      } catch (error) {
-        console.error('Error checking API key:', error);
-      }
-    };
-    
-    checkApiKey();
-  }, []);
+  // No need to check API key anymore - it's in backend
 
   const handleCreateProject = () => {
     setView('setup');
@@ -51,7 +35,6 @@ function App() {
 
   const handleCloseSettings = () => {
     setView('dashboard');
-    setShowApiKeyPrompt(false);
   };
 
   return (
@@ -81,7 +64,7 @@ function App() {
       {view === 'settings' && (
         <Settings
           onClose={handleCloseSettings}
-          isFirstTime={showApiKeyPrompt}
+          isFirstTime={false}
         />
       )}
     </div>

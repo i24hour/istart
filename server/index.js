@@ -5,6 +5,7 @@ import { connectDB } from './db.js';
 import projectsRouter from './routes/projects.js';
 import logsRouter from './routes/logs.js';
 import usersRouter from './routes/users.js';
+import aiRouter from './routes/ai.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.get('/health', (req, res) => {
 app.use('/api/projects', projectsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/ai', aiRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

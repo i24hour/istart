@@ -1,16 +1,10 @@
 // Gemini API Integration
 
-import { getApiKey } from './storageApi.js';
-
 const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
-// Score daily work using Gemini AI
+    // Score daily work using Gemini AI - API key handled by backend
 export const scoreWork = async (project, logs, todayWork) => {
-    const apiKey = await getApiKey();
-
-    if (!apiKey) {
-        throw new Error('No API key found. Please configure your Gemini API key in settings.');
-    }
+    // API key is now in backend, no need to get from user
 
     const { name, description, milestones, deadline, currentDay } = project;
     const remainingDays = deadline - currentDay;
@@ -55,45 +49,21 @@ Return ONLY valid JSON (no markdown, no code blocks):
 }`;
 
     try {
-        const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${apiKey}`, {
+        // Use backend API endpoint instead of direct Gemini call
+        const response = await fetch('/api/ai/score', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }]
-            })
+            body: JSON.stringify({ prompt })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'API request failed');
+            throw new Error(errorData.error || 'API request failed');
         }
 
-        const data = await response.json();
-
-        // Extract text response
-        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!responseText) {
-            throw new Error('No response from AI');
-        }
-
-        // Parse JSON from response (handle markdown wrapper if present)
-        let jsonText = responseText.trim();
-
-        // Remove markdown code block if present
-        if (jsonText.startsWith('```json')) {
-            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
-        } else if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```\n?/g, '');
-        }
-
-        const result = JSON.parse(jsonText);
+        const result = await response.json();
 
         // Validate response structure
         if (typeof result.score !== 'number' ||
