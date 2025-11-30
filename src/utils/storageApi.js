@@ -1,7 +1,9 @@
 // API client for MongoDB backend
 import { v4 as uuidv4 } from 'uuid';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.PROD 
+    ? import.meta.env.VITE_API_URL || '' 
+    : ''; // Use proxy in development
 
 // Get or create user ID
 const getUserId = () => {

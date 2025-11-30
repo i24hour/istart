@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { generateProjectId, getTodayDate } from '../utils/helpers';
-import { saveProject } from '../utils/storage';
+import { saveProject } from '../utils/storageApi';
 
 function ProjectSetup({ onProjectCreated, onCancel }) {
     const [formData, setFormData] = useState({
@@ -12,6 +12,7 @@ function ProjectSetup({ onProjectCreated, onCancel }) {
         startDate: getTodayDate(),
     });
     const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,32 +66,41 @@ function ProjectSetup({ onProjectCreated, onCancel }) {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!validate()) {
             return;
         }
 
-        // Create project object
-        const project = {
-            id: generateProjectId(),
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-            milestones: formData.milestones.filter(m => m.trim()),
-            deadline: parseInt(formData.deadline),
-            startDate: formData.startDate,
-            cumulativeScore: 0,
-            currentDay: 1,
-            completedMilestones: [],
-            createdAt: new Date().toISOString(),
-        };
+        setIsSubmitting(true);
 
-        // Save to storage
-        saveProject(project);
+        try {
+            // Create project object
+            const project = {
+                id: generateProjectId(),
+                name: formData.name.trim(),
+                description: formData.description.trim(),
+                milestones: formData.milestones.filter(m => m.trim()),
+                deadline: parseInt(formData.deadline),
+                startDate: formData.startDate,
+                cumulativeScore: 0,
+                currentDay: 1,
+                completedMilestones: [],
+                createdAt: new Date().toISOString(),
+            };
 
-        // Navigate to tracking view
-        onProjectCreated(project.id);
+            // Save to database
+            await saveProject(project);
+
+            // Navigate to tracking view
+            onProjectCreated(project.id);
+        } catch (error) {
+            console.error('Error creating project:', error);
+            setErrors({ submit: 'Failed to create project. Please try again.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -225,17 +235,26 @@ function ProjectSetup({ onProjectCreated, onCancel }) {
 
                         {/* Submit */}
                         <div className="flex gap-4 pt-4">
-                            <button type="submit" className="btn-primary flex-1">
-                                Start Tracking
+                            <button 
+                                type="submit" 
+                                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? 'Creating...' : 'Start Tracking'}
                             </button>
                             <button
                                 type="button"
                                 onClick={onCancel}
                                 className="btn-secondary"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </button>
                         </div>
+
+                        {errors.submit && (
+                            <p className="text-red-500 text-sm text-center mt-4">{errors.submit}</p>
+                        )}
                     </form>
                 </div>
             </div>

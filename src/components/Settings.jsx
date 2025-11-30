@@ -3,49 +3,79 @@ import { X, Key, Trash2, Download } from 'lucide-react';
 import { getApiKey, setApiKey as saveApiKey, clearAllData, loadProjectsList, loadProject, loadLogs } from '../utils/storage';
 
 function Settings({ onClose, isFirstTime }) {
-    const [apiKey, setApiKey] = useState(getApiKey());
+    const [apiKey, setApiKey] = useState('');
     const [showConfirmReset, setShowConfirmReset] = useState(false);
     const [message, setMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleSaveApiKey = () => {
+    useEffect(() => {
+        loadApiKey();
+    }, []);
+
+    const loadApiKey = async () => {
+        try {
+            const key = await getApiKey();
+            setApiKey(key);
+        } catch (error) {
+            console.error('Error loading API key:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSaveApiKey = async () => {
         if (!apiKey.trim()) {
             setMessage('Please enter a valid API key');
             return;
         }
 
-        saveApiKey(apiKey);
-        setMessage('API key saved successfully!');
-
-        setTimeout(() => {
-            if (isFirstTime) {
-                onClose();
-            }
-        }, 1500);
-    };
-
-    const handleResetData = () => {
-        if (showConfirmReset) {
-            clearAllData();
-            setMessage('All data cleared successfully!');
-            setShowConfirmReset(false);
+        try {
+            await saveApiKey(apiKey);
+            setMessage('API key saved successfully!');
 
             setTimeout(() => {
-                onClose();
+                if (isFirstTime) {
+                    onClose();
+                }
             }, 1500);
+        } catch (error) {
+            console.error('Error saving API key:', error);
+            setMessage('Failed to save API key. Please try again.');
+        }
+    };
+
+    const handleResetData = async () => {
+        if (showConfirmReset) {
+            try {
+                await clearAllData();
+                setMessage('All data cleared successfully!');
+                setShowConfirmReset(false);
+
+                setTimeout(() => {
+                    onClose();
+                }, 1500);
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                setMessage('Failed to clear data. Please try again.');
+            }
         } else {
             setShowConfirmReset(true);
         }
     };
 
-    const handleExportData = () => {
+    const handleExportData = async () => {
         try {
-            const projectIds = loadProjectsList();
+            const projectIds = await loadProjectsList();
+            const projects = await Promise.all(
+                projectIds.map(async (id) => ({
+                    project: await loadProject(id),
+                    logs: await loadLogs(id)
+                }))
+            );
+
             const exportData = {
                 exportDate: new Date().toISOString(),
-                projects: projectIds.map(id => ({
-                    project: loadProject(id),
-                    logs: loadLogs(id)
-                }))
+                projects
             };
 
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -108,14 +138,18 @@ function Settings({ onClose, isFirstTime }) {
                                 Google AI Studio
                             </a>
                         </p>
-                        <input
-                            type="password"
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                            placeholder="Enter your Gemini API key"
-                            className="input-field mb-4"
-                        />
-                        <button onClick={handleSaveApiKey} className="btn-primary">
+                        {isLoading ? (
+                            <div className="h-10 bg-gray-100 rounded-lg animate-pulse mb-4"></div>
+                        ) : (
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                placeholder="Enter your Gemini API key"
+                                className="input-field mb-4"
+                            />
+                        )}
+                        <button onClick={handleSaveApiKey} className="btn-primary" disabled={isLoading}>
                             Save API Key
                         </button>
                     </div>

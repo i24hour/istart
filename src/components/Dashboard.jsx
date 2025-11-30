@@ -1,26 +1,33 @@
 import { useState, useEffect } from 'react';
 import { Plus, Settings as SettingsIcon, Droplets } from 'lucide-react';
-import { loadProjectsList, loadProject, loadLogs } from '../utils/storage';
+import { loadProjectsList, loadProject, loadLogs } from '../utils/storageApi';
 import { formatDate, getDaysSince, calculateStatus } from '../utils/helpers';
 
 function Dashboard({ onCreateProject, onSelectProject, onOpenSettings }) {
     const [projects, setProjects] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         loadProjects();
     }, []);
 
-    const loadProjects = () => {
-        const projectIds = loadProjectsList();
-        const projectsData = projectIds
-            .map(id => {
-                const project = loadProject(id);
-                const logs = loadLogs(id);
-                return { ...project, logs };
-            })
-            .filter(p => p.id); // Filter out any null projects
-
-        setProjects(projectsData);
+    const loadProjects = async () => {
+        setIsLoading(true);
+        try {
+            const projectIds = await loadProjectsList();
+            const projectsData = await Promise.all(
+                projectIds.map(async (id) => {
+                    const project = await loadProject(id);
+                    const logs = await loadLogs(id);
+                    return { ...project, logs };
+                })
+            );
+            setProjects(projectsData.filter(p => p && p.id));
+        } catch (error) {
+            console.error('Error loading projects:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -57,7 +64,12 @@ function Dashboard({ onCreateProject, onSelectProject, onOpenSettings }) {
                 </button>
 
                 {/* Projects Grid */}
-                {projects.length === 0 ? (
+                {isLoading ? (
+                    <div className="card p-12 text-center">
+                        <div className="animate-spin w-16 h-16 border-4 border-water-blue border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading projects...</p>
+                    </div>
+                ) : projects.length === 0 ? (
                     <div className="card p-12 text-center">
                         <Droplets className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-gray-700 mb-2">No Projects Yet</h2>

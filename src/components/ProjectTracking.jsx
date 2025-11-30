@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, Edit2 } from 'lucide-react';
-import { loadProject, saveProject, loadLogs, saveLog, deleteProject } from '../utils/storage';
+import { loadProject, saveProject, loadLogs, saveLog, deleteProject } from '../utils/storageApi';
 import { getDaysSince, calculateStatus, getTodayLog, getTodayDate } from '../utils/helpers';
 import { scoreWork } from '../utils/geminiApi';
 import WaterBucketScene from './WaterBucketScene';
@@ -20,17 +20,21 @@ function ProjectTracking({ projectId, onBack }) {
         loadProjectData();
     }, [projectId]);
 
-    const loadProjectData = () => {
-        const projectData = loadProject(projectId);
-        const projectLogs = loadLogs(projectId);
+    const loadProjectData = async () => {
+        try {
+            const projectData = await loadProject(projectId);
+            const projectLogs = await loadLogs(projectId);
 
-        if (projectData) {
-            // Update current day
-            const currentDay = getDaysSince(projectData.startDate);
-            projectData.currentDay = currentDay;
+            if (projectData) {
+                // Update current day
+                const currentDay = getDaysSince(projectData.startDate);
+                projectData.currentDay = currentDay;
 
-            setProject(projectData);
-            setLogs(projectLogs);
+                setProject(projectData);
+                setLogs(projectLogs);
+            }
+        } catch (error) {
+            console.error('Error loading project:', error);
         }
     };
 
@@ -55,14 +59,14 @@ function ProjectTracking({ projectId, onBack }) {
             };
 
             // Save log
-            saveLog(projectId, logEntry);
+            await saveLog(projectId, logEntry);
 
             // Update project cumulative score
             const updatedProject = {
                 ...project,
                 cumulativeScore: project.cumulativeScore + result.score,
             };
-            saveProject(updatedProject);
+            await saveProject(updatedProject);
 
             // Update state
             setProject(updatedProject);
@@ -78,17 +82,22 @@ function ProjectTracking({ projectId, onBack }) {
         }
     };
 
-    const handleDeleteProject = () => {
+    const handleDeleteProject = async () => {
         if (showDeleteConfirm) {
-            deleteProject(projectId);
-            onBack();
+            try {
+                await deleteProject(projectId);
+                onBack();
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                setError('Failed to delete project. Please try again.');
+            }
         } else {
             setShowDeleteConfirm(true);
             setTimeout(() => setShowDeleteConfirm(false), 5000);
         }
     };
 
-    const handleToggleMilestone = (index) => {
+    const handleToggleMilestone = async (index) => {
         const completedMilestones = project.completedMilestones || [];
         const updatedMilestones = completedMilestones.includes(index)
             ? completedMilestones.filter(i => i !== index)
@@ -99,8 +108,12 @@ function ProjectTracking({ projectId, onBack }) {
             completedMilestones: updatedMilestones,
         };
 
-        saveProject(updatedProject);
-        setProject(updatedProject);
+        try {
+            await saveProject(updatedProject);
+            setProject(updatedProject);
+        } catch (error) {
+            console.error('Error updating milestones:', error);
+        }
     };
 
     if (!project) {

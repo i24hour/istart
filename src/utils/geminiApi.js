@@ -1,12 +1,12 @@
 // Gemini API Integration
 
-import { getApiKey } from './storage.js';
+import { getApiKey } from './storageApi.js';
 
 const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 // Score daily work using Gemini AI
 export const scoreWork = async (project, logs, todayWork) => {
-    const apiKey = getApiKey();
+    const apiKey = await getApiKey();
 
     if (!apiKey) {
         throw new Error('No API key found. Please configure your Gemini API key in settings.');

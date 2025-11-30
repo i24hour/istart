@@ -3,7 +3,7 @@ import Dashboard from './components/Dashboard';
 import ProjectSetup from './components/ProjectSetup';
 import ProjectTracking from './components/ProjectTracking';
 import Settings from './components/Settings';
-import { getApiKey } from './utils/storage';
+import { getApiKey } from './utils/storageApi';
 
 function App() {
   const [view, setView] = useState('dashboard'); // dashboard, setup, tracking, settings
@@ -12,10 +12,18 @@ function App() {
 
   useEffect(() => {
     // Check if API key exists on first load
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setShowApiKeyPrompt(true);
-    }
+    const checkApiKey = async () => {
+      try {
+        const apiKey = await getApiKey();
+        if (!apiKey) {
+          setShowApiKeyPrompt(true);
+        }
+      } catch (error) {
+        console.error('Error checking API key:', error);
+      }
+    };
+    
+    checkApiKey();
   }, []);
 
   const handleCreateProject = () => {
