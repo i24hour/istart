@@ -1,6 +1,6 @@
 // Gemini API Integration
 
-const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
     // Score daily work using Gemini AI - API key handled by backend
 export const scoreWork = async (project, logs, todayWork) => {
